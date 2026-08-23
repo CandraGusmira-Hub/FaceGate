@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>FaceGate - Login</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: white;
+        }
+
+        .container {
+            width: 420px;
+            padding: 30px;
+            text-align: center;
+            background: #1e293b;
+            border-radius: 20px;
+        }
+
+        h1 {
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #94a3b8;
+            margin-bottom: 25px;
+        }
+
+        video {
+            width: 100%;
+            border-radius: 15px;
+            background: black;
+            transform: scaleX(-1);
+        }
+
+        button {
+            width: 100%;
+            margin-top: 20px;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            background: #22c55e;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #16a34a;
+        }
+
+        #status {
+            margin-top: 20px;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>FaceGate</h1>
+
+    <div class="subtitle">
+        Face Authentication System
+    </div>
+
+    <video id="camera" autoplay playsinline></video>
+
+    <button onclick="authenticate()">
+        Scan Face
+    </button>
+
+    <div id="status">
+        Camera belum aktif
+    </div>
+
+</div>
+
+
+<script>
+
+const video = document.getElementById("camera");
+const statusText = document.getElementById("status");
+
+
+// ===============================
+// START CAMERA
+// ===============================
+
+async function startCamera() {
+
+    try {
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false
+        });
+
+        video.srcObject = stream;
+
+        statusText.innerText = "Camera ready. Position your face.";
+
+    } catch (error) {
+
+        console.error(error);
+
+        statusText.innerText =
+            "Camera permission denied.";
+
+    }
+}
+
+
+// ===============================
+// AUTHENTICATE FACE
+// ===============================
+
+async function authenticate() {
+
+    statusText.innerText = "Scanning face...";
+
+    const canvas = document.createElement("canvas");
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const context = canvas.getContext("2d");
+
+    context.drawImage(
+        video,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    const imageData = canvas.toDataURL("image/jpeg");
+
+
+    try {
+
+        const response = await fetch("/recognize", {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                image: imageData
+            })
+
+        });
+
+
+        const result = await response.json();
+
+
+        if (result.success) {
+
+            statusText.innerText =
+                "✓ Access Granted. Welcome " + result.name;
+
+            setTimeout(() => {
+
+                window.location.href = "/dashboard";
+
+            }, 1000);
+
+        } else {
+
+            statusText.innerText =
+                "✕ Access Denied";
+
+        }
+
+    } catch (error) {
+
+        console.error(error);
+
+        statusText.innerText =
+            "Authentication error.";
+
+    }
+}
+
+
+// Start camera automatically
+startCamera();
+
+</script>
+
+</body>
+</html>
